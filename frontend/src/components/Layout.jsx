@@ -10,7 +10,7 @@ export default function Layout() {
       const secondConfirm = window.confirm('This action cannot be undone. Are you absolutely certain you want to reset?');
       if (secondConfirm) {
         try {
-          const res = await fetch('http://localhost:5000/api/analytics/reset', { method: 'POST' });
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/analytics/reset`, { method: 'POST' });
           if (res.ok) {
             alert('Database has been completely reset.');
             window.location.reload(); // Refresh to clear UI state

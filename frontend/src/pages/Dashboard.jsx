@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import { Package, Clock } from 'lucide-react';
 
-const API = 'http://localhost:5000/api';
+const API = `${import.meta.env.VITE_API_URL}/api`;
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
 function startOfDay(d) { const r = new Date(d); r.setHours(0,0,0,0); return r; }

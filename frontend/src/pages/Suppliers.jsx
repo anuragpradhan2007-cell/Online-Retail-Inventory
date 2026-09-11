@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, X, Pencil } from 'lucide-react';
 
-const API = 'http://localhost:5000/api';
+const API = `${import.meta.env.VITE_API_URL}/api`;
 
 export default function Suppliers() {
   const [suppliers, setSuppliers] = useState([]);

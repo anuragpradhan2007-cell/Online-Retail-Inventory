@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, X, Pencil, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 
-const API = 'http://localhost:5000/api';
+const API = `${import.meta.env.VITE_API_URL}/api`;
 
 const STATUS_STYLES = {
   PENDING:    'bg-yellow-100 text-yellow-700',

@@ -32,14 +32,14 @@ export default function Products() {
   const [editError, setEditError] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/products')
+    fetch(`${import.meta.env.VITE_API_URL}/api/products`)
       .then(res => res.json())
       .then(data => {
         setProducts(data);
         setLoading(false);
       });
       
-    fetch('http://localhost:5000/api/suppliers')
+    fetch(`${import.meta.env.VITE_API_URL}/api/suppliers`)
       .then(res => res.json())
       .then(data => setSuppliers(data));
   }, []);
@@ -61,7 +61,7 @@ export default function Products() {
       return;
     }
     try {
-      const response = await fetch('http://localhost:5000/api/products', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -79,7 +79,7 @@ export default function Products() {
         const addedProduct = await response.json();
         // The newly returned product might not have the supplier join yet, but we reload or just append.
         // Easiest is to reload the products list so we get the supplier name joined.
-        fetch('http://localhost:5000/api/products').then(r => r.json()).then(setProducts);
+        fetch(`${import.meta.env.VITE_API_URL}/api/products`).then(r => r.json()).then(setProducts);
         
         setIsModalOpen(false);
         setFormData({ title: '', sku: '', cost_price: '', selling_price: '', current_stock: '', safety_stock_threshold: '', supplier_id: '' });
@@ -123,7 +123,7 @@ export default function Products() {
     }
     setEditError('');
     try {
-      const response = await fetch(`http://localhost:5000/api/products/${editProduct.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/${editProduct.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -140,7 +140,7 @@ export default function Products() {
       if (!response.ok) { setEditError(data.error || 'Failed to update product'); return; }
       
       // Reload from backend to get the updated join data
-      fetch('http://localhost:5000/api/products').then(r => r.json()).then(setProducts);
+      fetch(`${import.meta.env.VITE_API_URL}/api/products`).then(r => r.json()).then(setProducts);
       setEditProduct(null);
     } catch {
       setEditError('Network error — is the backend running?');
