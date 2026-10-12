@@ -47,8 +47,14 @@ export function AuthProvider({ children }) {
     return await supabase.auth.signOut();
   };
 
+  const updatePassword = async (newPassword) => {
+    return await supabase.auth.updateUser({
+      password: newPassword,
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signOut, updatePassword }}>
       {children}
     </AuthContext.Provider>
   );

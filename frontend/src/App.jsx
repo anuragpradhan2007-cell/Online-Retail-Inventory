@@ -8,6 +8,8 @@ import Orders from './pages/Orders';
 import Suppliers from './pages/Suppliers';
 import Login from './pages/Login';
 
+import Settings from './pages/Settings';
+
 const Placeholder = ({ title }) => <h2 className="text-2xl font-bold">{title} Page</h2>;
 
 function App() {
@@ -25,7 +27,7 @@ function App() {
               <Route path="products" element={<Products />} />
               <Route path="suppliers" element={<Suppliers />} />
               <Route path="orders" element={<Orders />} />
-              <Route path="settings" element={<Placeholder title="Settings" />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
           </Route>
 
