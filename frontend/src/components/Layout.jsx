@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Box, Users, ShoppingCart, Settings, RotateCcw } from 'lucide-react';
+import { LayoutDashboard, Box, Users, ShoppingCart, Settings, RotateCcw, BarChart2 } from 'lucide-react';
 
 export default function Layout() {
   const location = useLocation();
@@ -57,6 +57,7 @@ export default function Layout() {
               <NavItem to="/products" icon={Box} label="Products" />
               <NavItem to="/suppliers" icon={Users} label="Suppliers" />
               <NavItem to="/orders" icon={ShoppingCart} label="Orders" />
+              <NavItem to="/analytics" icon={BarChart2} label="Analytics" />
             </nav>
           </div>
 
