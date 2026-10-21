@@ -22,8 +22,10 @@ router.post('/reset', async (req: Request, res: Response): Promise<void> => {
     // Delete in order to respect foreign key constraints
     await supabase.from('order_items').delete().not('id', 'is', null);
     await supabase.from('orders').delete().not('id', 'is', null);
+    await supabase.from('purchase_orders').delete().not('id', 'is', null);
     await supabase.from('products').delete().not('id', 'is', null);
     await supabase.from('suppliers').delete().not('id', 'is', null);
+    await supabase.from('audit_logs').delete().not('id', 'is', null);
     
     res.status(200).json({ message: 'Database reset successfully' });
   } catch (error: any) {

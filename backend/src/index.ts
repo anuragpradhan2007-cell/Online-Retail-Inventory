@@ -4,7 +4,9 @@ import dotenv from 'dotenv';
 import supplierRoutes from './routes/suppliers.js';
 import productRoutes from './routes/products.js';
 import orderRoutes from './routes/orders.js';
-import analyticsRoutes from './routes/analytics.js'; // <-- Add import
+import analyticsRoutes from './routes/analytics.js';
+import purchaseOrderRoutes from './routes/purchaseOrders.js';
+import auditLogRoutes from './routes/auditLogs.js';
 import { supabase } from './config/supabase.js';
 
 dotenv.config();
@@ -36,6 +38,8 @@ app.get('/health', (req, res) => res.status(200).json({ status: 'ok', uptime: pr
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/analytics', analyticsRoutes); // <-- Mount analytics
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
 
 app.listen(port, () => console.log(`Inventory backend running on http://localhost:${port}`));

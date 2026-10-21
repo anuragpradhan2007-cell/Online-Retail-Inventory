@@ -10,6 +10,8 @@ import Login from './pages/Login';
 
 import Settings from './pages/Settings';
 import Analytics from './pages/Analytics';
+import PurchaseOrders from './pages/PurchaseOrders';
+import AuditLogs from './pages/AuditLogs';
 
 const Placeholder = ({ title }) => <h2 className="text-2xl font-bold">{title} Page</h2>;
 
@@ -28,7 +30,9 @@ function App() {
               <Route path="products" element={<Products />} />
               <Route path="suppliers" element={<Suppliers />} />
               <Route path="orders" element={<Orders />} />
+              <Route path="purchase-orders" element={<PurchaseOrders />} />
               <Route path="analytics" element={<Analytics />} />
+              <Route path="audit-logs" element={<AuditLogs />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Route>
