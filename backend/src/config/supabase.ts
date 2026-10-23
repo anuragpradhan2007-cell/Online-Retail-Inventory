@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import ws from 'ws';
 
 dotenv.config();
 
@@ -12,5 +13,8 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 // Service role key bypasses RLS for a secure backend
 export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { persistSession: false }
+  auth: { persistSession: false },
+  realtime: {
+    transport: ws as any
+  }
 });

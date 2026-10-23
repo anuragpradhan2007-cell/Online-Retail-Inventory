@@ -13,6 +13,7 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
+const instanceId = process.env.INSTANCE_ID || 'instance-default';
 
 const allowedOrigins = [
   'http://localhost:5173',
@@ -32,7 +33,17 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.get('/health', (req, res) => res.status(200).json({ status: 'ok', uptime: process.uptime() }));
+// Load balancing identification middleware: tags every response with the backend instance ID
+app.use((req, res, next) => {
+  res.setHeader('X-Served-By', instanceId);
+  next();
+});
+
+app.get('/health', (req, res) => res.status(200).json({ 
+  status: 'ok', 
+  instance: instanceId, 
+  uptime: process.uptime() 
+}));
 
 // Mount API Routes
 app.use('/api/suppliers', supplierRoutes);
@@ -42,4 +53,4 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 
-app.listen(port, () => console.log(`Inventory backend running on http://localhost:${port}`));
+app.listen(port, () => console.log(`Inventory backend [${instanceId}] running on http://localhost:${port}`));
