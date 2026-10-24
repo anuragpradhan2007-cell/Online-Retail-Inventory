@@ -81,8 +81,7 @@ BEGIN
         WHERE email = 'anuragpradhan2007@gmail.com';
     END IF;
 EXCEPTION WHEN OTHERS THEN
-    -- If auth schema is strictly managed by Supabase Cloud, continue to data insertion
-    RAISE NOTICE 'Auth user insertion notice: %', SQLERRM;
+    RAISE NOTICE 'Auth user notice: %', SQLERRM;
 END $$;
 
 -- -----------------------------------------------------------------------------
@@ -124,41 +123,43 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- -----------------------------------------------------------------------------
 -- 4. ORDERS (11 Oct 2026 to 24 Oct 2026)
+-- Note: total_amount included to satisfy NOT NULL constraint
 -- -----------------------------------------------------------------------------
-INSERT INTO public.orders (id, customer_name, customer_email, order_status, ordered_at, delivered_at)
+INSERT INTO public.orders (id, customer_name, customer_email, total_amount, order_status, ordered_at, delivered_at)
 VALUES
     -- 11 Oct (Delivered)
-    ('c0000000-0000-0000-0000-000000000001', 'Rahul Sharma', 'rahul.s@outlook.com', 'DELIVERED', '2026-10-11 10:15:00+05:30', '2026-10-15 14:00:00+05:30'),
+    ('c0000000-0000-0000-0000-000000000001', 'Rahul Sharma', 'rahul.s@outlook.com', 4398, 'DELIVERED', '2026-10-11 10:15:00+05:30', '2026-10-15 14:00:00+05:30'),
     -- 12 Oct (Delivered)
-    ('c0000000-0000-0000-0000-000000000002', 'Priya Patel', 'priya.p@gmail.com', 'DELIVERED', '2026-10-12 11:30:00+05:30', '2026-10-16 16:45:00+05:30'),
+    ('c0000000-0000-0000-0000-000000000002', 'Priya Patel', 'priya.p@gmail.com', 4999, 'DELIVERED', '2026-10-12 11:30:00+05:30', '2026-10-16 16:45:00+05:30'),
     -- 13 Oct (Delivered)
-    ('c0000000-0000-0000-0000-000000000003', 'Amit Verma', 'amit.v@yahoo.com', 'DELIVERED', '2026-10-13 14:20:00+05:30', '2026-10-17 12:30:00+05:30'),
+    ('c0000000-0000-0000-0000-000000000003', 'Amit Verma', 'amit.v@yahoo.com', 6497, 'DELIVERED', '2026-10-13 14:20:00+05:30', '2026-10-17 12:30:00+05:30'),
     -- 14 Oct (Delivered)
-    ('c0000000-0000-0000-0000-000000000004', 'Sneha Kulkarni', 'sneha.k@hotmail.com', 'DELIVERED', '2026-10-14 09:45:00+05:30', '2026-10-18 15:10:00+05:30'),
-    -- 15 Oct (Cancelled Order - demonstrates exclusion from Total Sales & Stock Gain)
-    ('c0000000-0000-0000-0000-000000000005', 'Vikram Malhotra', 'vikram.m@gmail.com', 'CANCELLED', '2026-10-15 16:00:00+05:30', NULL),
+    ('c0000000-0000-0000-0000-000000000004', 'Sneha Kulkarni', 'sneha.k@hotmail.com', 4498, 'DELIVERED', '2026-10-14 09:45:00+05:30', '2026-10-18 15:10:00+05:30'),
+    -- 15 Oct (Cancelled Order - demonstrates revenue exclusion & cancellation handling)
+    ('c0000000-0000-0000-0000-000000000005', 'Vikram Malhotra', 'vikram.m@gmail.com', 3499, 'CANCELLED', '2026-10-15 16:00:00+05:30', NULL),
     -- 16 Oct (Delivered)
-    ('c0000000-0000-0000-0000-000000000006', 'Rohan Gupta', 'rohan.g@gmail.com', 'DELIVERED', '2026-10-16 13:10:00+05:30', '2026-10-20 17:00:00+05:30'),
+    ('c0000000-0000-0000-0000-000000000006', 'Rohan Gupta', 'rohan.g@gmail.com', 1497, 'DELIVERED', '2026-10-16 13:10:00+05:30', '2026-10-20 17:00:00+05:30'),
     -- 17 Oct (Delivered)
-    ('c0000000-0000-0000-0000-000000000007', 'Ananya Roy', 'ananya.roy@live.com', 'DELIVERED', '2026-10-17 15:40:00+05:30', '2026-10-21 11:20:00+05:30'),
+    ('c0000000-0000-0000-0000-000000000007', 'Ananya Roy', 'ananya.roy@live.com', 2698, 'DELIVERED', '2026-10-17 15:40:00+05:30', '2026-10-21 11:20:00+05:30'),
     -- 18 Oct (Delivered)
-    ('c0000000-0000-0000-0000-000000000008', 'Karthik Subramanian', 'karthik.s@gmail.com', 'DELIVERED', '2026-10-18 17:25:00+05:30', '2026-10-22 13:50:00+05:30'),
+    ('c0000000-0000-0000-0000-000000000008', 'Karthik Subramanian', 'karthik.s@gmail.com', 5997, 'DELIVERED', '2026-10-18 17:25:00+05:30', '2026-10-22 13:50:00+05:30'),
     -- 19 Oct (Monday of this week - Dispatched)
-    ('c0000000-0000-0000-0000-000000000009', 'Deepak Nair', 'deepak.nair@corp.in', 'DISPATCHED', '2026-10-19 10:00:00+05:30', NULL),
+    ('c0000000-0000-0000-0000-000000000009', 'Deepak Nair', 'deepak.nair@corp.in', 5798, 'DISPATCHED', '2026-10-19 10:00:00+05:30', NULL),
     -- 20 Oct (Tuesday of this week - Dispatched)
-    ('c0000000-0000-0000-0000-000000000010', 'Meera Joshi', 'meera.j@gmail.com', 'DISPATCHED', '2026-10-20 12:15:00+05:30', NULL),
+    ('c0000000-0000-0000-0000-000000000010', 'Meera Joshi', 'meera.j@gmail.com', 5298, 'DISPATCHED', '2026-10-20 12:15:00+05:30', NULL),
     -- 21 Oct (Wednesday of this week - Processing)
-    ('c0000000-0000-0000-0000-000000000011', 'Siddharth Jain', 'sid.jain@tech.com', 'PROCESSING', '2026-10-21 14:50:00+05:30', NULL),
+    ('c0000000-0000-0000-0000-000000000011', 'Siddharth Jain', 'sid.jain@tech.com', 3199, 'PROCESSING', '2026-10-21 14:50:00+05:30', NULL),
     -- 22 Oct (Thursday of this week - Processing)
-    ('c0000000-0000-0000-0000-000000000012', 'Pooja Hegde', 'pooja.h@yahoo.com', 'PROCESSING', '2026-10-22 16:30:00+05:30', NULL),
+    ('c0000000-0000-0000-0000-000000000012', 'Pooja Hegde', 'pooja.h@yahoo.com', 3497, 'PROCESSING', '2026-10-22 16:30:00+05:30', NULL),
     -- 23 Oct (Friday of this week - Pending)
-    ('c0000000-0000-0000-0000-000000000013', 'Arjun Kapoor', 'arjun.k@gmail.com', 'PENDING', '2026-10-23 11:20:00+05:30', NULL),
+    ('c0000000-0000-0000-0000-000000000013', 'Arjun Kapoor', 'arjun.k@gmail.com', 5498, 'PENDING', '2026-10-23 11:20:00+05:30', NULL),
     -- 24 Oct (Today - Pending / Dispatch Queue)
-    ('c0000000-0000-0000-0000-000000000014', 'Ritu Saxena', 'ritu.saxena@gmail.com', 'PENDING', '2026-10-24 09:30:00+05:30', NULL),
-    ('c0000000-0000-0000-0000-000000000015', 'Naveen Choudhary', 'naveen.c@outlook.com', 'PROCESSING', '2026-10-24 10:15:00+05:30', NULL)
+    ('c0000000-0000-0000-0000-000000000014', 'Ritu Saxena', 'ritu.saxena@gmail.com', 3499, 'PENDING', '2026-10-24 09:30:00+05:30', NULL),
+    ('c0000000-0000-0000-0000-000000000015', 'Naveen Choudhary', 'naveen.c@outlook.com', 2698, 'PROCESSING', '2026-10-24 10:15:00+05:30', NULL)
 ON CONFLICT (id) DO UPDATE SET
     customer_name = EXCLUDED.customer_name,
     customer_email = EXCLUDED.customer_email,
+    total_amount = EXCLUDED.total_amount,
     order_status = EXCLUDED.order_status,
     ordered_at = EXCLUDED.ordered_at,
     delivered_at = EXCLUDED.delivered_at;
@@ -183,7 +184,7 @@ VALUES
     ('d0000000-0000-0000-0000-000000000006', 'c0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000005', 1, 3199, 3199),
     ('d0000000-0000-0000-0000-000000000007', 'c0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000007', 1, 1299, 1299),
 
-    -- Items for Order 5 (15 Oct - CANCELLED): Keyboard (1) -> Total: 3,499 (Excluded from dashboard revenue!)
+    -- Items for Order 5 (15 Oct - CANCELLED): Keyboard (1) -> Total: 3,499 (Excluded from sales!)
     ('d0000000-0000-0000-0000-000000000008', 'c0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000001', 1, 3499, 3499),
 
     -- Items for Order 6 (16 Oct): Fast-Charge Cable (3) -> Total: 1,497
