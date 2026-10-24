@@ -46,20 +46,22 @@ export default function Analytics() {
 
   // ── 1. STOCK-OUT WARNINGS ─────────────────────────────────────────────────
   const stockoutWarnings = useMemo(() => {
-    // Calculate daily sales per product over last 30 days
+    // Calculate daily sales per product over last 30 days (excluding cancelled orders)
     const thirtyDaysAgo = daysAgo(30);
     const salesByProduct = {};
 
-    orders.forEach(order => {
-      const orderedAt = new Date(order.ordered_at);
-      if (orderedAt >= thirtyDaysAgo) {
-        (order.order_items || []).forEach(item => {
-          const pid = item.products?.sku || item.product_id;
-          if (!salesByProduct[pid]) salesByProduct[pid] = { units: 0, title: item.products?.title };
-          salesByProduct[pid].units += Number(item.quantity || 0);
-        });
-      }
-    });
+    orders
+      .filter(o => o.order_status !== 'CANCELLED')
+      .forEach(order => {
+        const orderedAt = new Date(order.ordered_at);
+        if (orderedAt >= thirtyDaysAgo) {
+          (order.order_items || []).forEach(item => {
+            const pid = item.products?.sku || item.product_id;
+            if (!salesByProduct[pid]) salesByProduct[pid] = { units: 0, title: item.products?.title };
+            salesByProduct[pid].units += Number(item.quantity || 0);
+          });
+        }
+      });
 
     return products
       .map(product => {
@@ -147,11 +149,12 @@ export default function Analytics() {
   // ── 3. SCHEME SUGGESTIONS ─────────────────────────────────────────────────
   const schemeSuggestions = useMemo(() => {
     const suggestions = [];
+    const validOrders = orders.filter(o => o.order_status !== 'CANCELLED');
 
     // Calculate 30-day sales velocity per product
     const thirtyDaysAgo = daysAgo(30);
     const salesVelocity = {};
-    orders.forEach(order => {
+    validOrders.forEach(order => {
       const orderedAt = new Date(order.ordered_at);
       if (orderedAt >= thirtyDaysAgo) {
         (order.order_items || []).forEach(item => {
@@ -165,8 +168,8 @@ export default function Analytics() {
     });
 
     const avgOrderValue =
-      orders.length > 0
-        ? orders.reduce((s, o) => s + orderRevenue(o), 0) / orders.length
+      validOrders.length > 0
+        ? validOrders.reduce((s, o) => s + orderRevenue(o), 0) / validOrders.length
         : 0;
 
     // Sort products by velocity

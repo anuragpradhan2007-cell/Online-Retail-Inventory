@@ -49,22 +49,94 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
   res.status(201).json({ message: 'Order placed successfully', order_id: orderId });
 });
 
-// PATCH update order status (e.g., 'DISPATCHED' or 'DELIVERED')
+// PATCH update order status (e.g., 'DISPATCHED', 'DELIVERED', 'CANCELLED')
+// If status is changed to CANCELLED, restores item stocks back to products!
 router.patch('/:id/status', async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { order_status } = req.body;
 
-  const { data, error } = await supabase
-    .from('orders')
-    .update({ 
-      order_status,
-      delivered_at: order_status === 'DELIVERED' ? new Date().toISOString() : null
-    })
-    .eq('id', id)
-    .select().single();
+  try {
+    // 1. Fetch current order with its items to check status transition
+    const { data: existingOrder, error: fetchErr } = await supabase
+      .from('orders')
+      .select(`
+        id, order_status,
+        order_items (
+          id, product_id, quantity
+        )
+      `)
+      .eq('id', id)
+      .single();
 
-  if (error) { res.status(400).json({ error: error.message }); return; }
-  res.json(data);
+    if (fetchErr || !existingOrder) {
+      res.status(404).json({ error: 'Order not found' });
+      return;
+    }
+
+    const prevStatus = existingOrder.order_status;
+    const items = existingOrder.order_items || [];
+
+    // 2. If cancelling an active order: RESTORE STOCK
+    if (prevStatus !== 'CANCELLED' && order_status === 'CANCELLED') {
+      for (const item of items) {
+        if (item.product_id && item.quantity > 0) {
+          const { data: prod } = await supabase
+            .from('products')
+            .select('current_stock')
+            .eq('id', item.product_id)
+            .single();
+
+          if (prod) {
+            await supabase
+              .from('products')
+              .update({
+                current_stock: (prod.current_stock || 0) + item.quantity,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', item.product_id);
+          }
+        }
+      }
+    }
+
+    // 3. If un-cancelling a previously cancelled order: DEDUCT STOCK
+    if (prevStatus === 'CANCELLED' && order_status !== 'CANCELLED') {
+      for (const item of items) {
+        if (item.product_id && item.quantity > 0) {
+          const { data: prod } = await supabase
+            .from('products')
+            .select('current_stock')
+            .eq('id', item.product_id)
+            .single();
+
+          if (prod) {
+            await supabase
+              .from('products')
+              .update({
+                current_stock: Math.max(0, (prod.current_stock || 0) - item.quantity),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', item.product_id);
+          }
+        }
+      }
+    }
+
+    // 4. Update the order
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ 
+        order_status,
+        delivered_at: order_status === 'DELIVERED' ? new Date().toISOString() : null
+      })
+      .eq('id', id)
+      .select().single();
+
+    if (error) { res.status(400).json({ error: error.message }); return; }
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

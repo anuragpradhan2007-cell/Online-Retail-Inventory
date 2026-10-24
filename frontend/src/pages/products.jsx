@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, X, Pencil } from 'lucide-react';
+import { Search, Plus, X, Pencil, Trash2 } from 'lucide-react';
 
 export default function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [suppliers, setSuppliers] = useState([]);
+
   // Add Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -31,17 +32,22 @@ export default function Products() {
   });
   const [editError, setEditError] = useState('');
 
-  useEffect(() => {
+  const fetchProducts = () => {
     fetch(`${import.meta.env.VITE_API_URL}/api/products`)
       .then(res => res.json())
       .then(data => {
-        setProducts(data);
+        setProducts(Array.isArray(data) ? data : []);
         setLoading(false);
-      });
-      
+      })
+      .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchProducts();
     fetch(`${import.meta.env.VITE_API_URL}/api/suppliers`)
       .then(res => res.json())
-      .then(data => setSuppliers(data));
+      .then(data => setSuppliers(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, []);
 
   // ── Search filter ────────────────────────────────────────────────────────
@@ -76,11 +82,7 @@ export default function Products() {
       });
 
       if (response.ok) {
-        const addedProduct = await response.json();
-        // The newly returned product might not have the supplier join yet, but we reload or just append.
-        // Easiest is to reload the products list so we get the supplier name joined.
-        fetch(`${import.meta.env.VITE_API_URL}/api/products`).then(r => r.json()).then(setProducts);
-        
+        fetchProducts();
         setIsModalOpen(false);
         setFormData({ title: '', sku: '', cost_price: '', selling_price: '', current_stock: '', safety_stock_threshold: '', supplier_id: '' });
       } else {
@@ -139,11 +141,33 @@ export default function Products() {
       const data = await response.json();
       if (!response.ok) { setEditError(data.error || 'Failed to update product'); return; }
       
-      // Reload from backend to get the updated join data
-      fetch(`${import.meta.env.VITE_API_URL}/api/products`).then(r => r.json()).then(setProducts);
+      fetchProducts();
       setEditProduct(null);
     } catch {
       setEditError('Network error — is the backend running?');
+    }
+  };
+
+  // ── Delete Product ───────────────────────────────────────────────────────
+  const handleDeleteProduct = async (product) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${product.title}" (${product.sku})?\n\nThis will permanently remove the product from your inventory.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/${product.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setProducts(prev => prev.filter(p => p.id !== product.id));
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete product');
+      }
+    } catch {
+      alert('Network error while deleting product.');
     }
   };
 
@@ -154,9 +178,9 @@ export default function Products() {
         <h1 className="text-2xl font-bold text-gray-900">Products Inventory</h1>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-gray-900 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-800 transition-colors"
+          className="bg-gray-900 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-800 transition-colors shadow-sm font-medium text-sm"
         >
-          <Plus size={20} /> Add Product
+          <Plus size={18} /> Add Product
         </button>
       </div>
 
@@ -164,13 +188,13 @@ export default function Products() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-4 border-b border-gray-100">
           <div className="relative w-72">
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
+            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
             <input 
               type="text" 
               placeholder="Search SKU or title..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900" 
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" 
             />
           </div>
         </div>
@@ -184,7 +208,7 @@ export default function Products() {
               <th className="p-4 font-medium">Price</th>
               <th className="p-4 font-medium">Stock</th>
               <th className="p-4 font-medium">Status</th>
-              <th className="p-4 font-medium">Actions</th>
+              <th className="p-4 font-medium text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -209,14 +233,23 @@ export default function Products() {
                       <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">In Stock</span>
                     )}
                   </td>
-                  <td className="p-4">
-                    <button
-                      onClick={() => openEditModal(product)}
-                      className="text-gray-400 hover:text-gray-900 transition-colors"
-                      title="Edit product"
-                    >
-                      <Pencil size={18} />
-                    </button>
+                  <td className="p-4 text-center">
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        onClick={() => openEditModal(product)}
+                        className="text-gray-400 hover:text-gray-900 transition-colors"
+                        title="Edit product"
+                      >
+                        <Pencil size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(product)}
+                        className="text-gray-400 hover:text-red-600 transition-colors"
+                        title="Delete product"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -227,13 +260,13 @@ export default function Products() {
 
       {/* Add Product Modal Overlay */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative">
             <button 
               onClick={() => setIsModalOpen(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-900"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
             
             <h2 className="text-xl font-bold text-gray-900 mb-6">Add New Product</h2>
@@ -241,17 +274,17 @@ export default function Products() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Product Title</label>
-                <input required type="text" name="title" value={formData.title} onChange={handleChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900" />
+                <input required type="text" name="title" value={formData.title} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
-                  <input required type="text" name="sku" value={formData.sku} onChange={handleChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900" />
+                  <input required type="text" name="sku" value={formData.sku} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
-                  <select required name="supplier_id" value={formData.supplier_id} onChange={handleChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900">
+                  <select required name="supplier_id" value={formData.supplier_id} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white">
                     <option value="">Select supplier</option>
                     {suppliers.map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
@@ -263,26 +296,26 @@ export default function Products() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Cost Price (₹)</label>
-                  <input required type="number" step="0.01" name="cost_price" value={formData.cost_price} onChange={handleChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900" />
+                  <input required type="number" step="0.01" name="cost_price" value={formData.cost_price} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Selling Price (₹)</label>
-                  <input required type="number" step="0.01" name="selling_price" value={formData.selling_price} onChange={handleChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900" />
+                  <input required type="number" step="0.01" name="selling_price" value={formData.selling_price} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Initial Stock</label>
-                  <input required type="number" name="current_stock" value={formData.current_stock} onChange={handleChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900" />
+                  <input required type="number" name="current_stock" value={formData.current_stock} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Safety Alert At</label>
-                  <input required type="number" name="safety_stock_threshold" value={formData.safety_stock_threshold} onChange={handleChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900" />
+                  <input required type="number" name="safety_stock_threshold" value={formData.safety_stock_threshold} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" />
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-gray-900 text-white font-semibold py-3 rounded-lg hover:bg-gray-800 transition-colors mt-6">
+              <button type="submit" className="w-full bg-gray-900 text-white font-semibold py-3 rounded-xl hover:bg-gray-800 transition-colors mt-6 shadow-sm">
                 Save Product
               </button>
             </form>
@@ -292,35 +325,35 @@ export default function Products() {
 
       {/* Edit Product Modal Overlay */}
       {editProduct && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative">
             <button 
               onClick={() => setEditProduct(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-900"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
             
             <h2 className="text-xl font-bold text-gray-900 mb-6">Edit Product</h2>
 
             {editError && (
-              <div className="mb-4 bg-red-50 text-red-700 px-4 py-2 rounded-lg text-sm">{editError}</div>
+              <div className="mb-4 bg-red-50 text-red-700 px-4 py-2 rounded-xl text-sm">{editError}</div>
             )}
             
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Product Title</label>
-                <input required type="text" name="title" value={editForm.title} onChange={handleEditChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900" />
+                <input required type="text" name="title" value={editForm.title} onChange={handleEditChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
-                  <input required type="text" name="sku" value={editForm.sku} onChange={handleEditChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900" />
+                  <input required type="text" name="sku" value={editForm.sku} onChange={handleEditChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
-                  <select required name="supplier_id" value={editForm.supplier_id} onChange={handleEditChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900">
+                  <select required name="supplier_id" value={editForm.supplier_id} onChange={handleEditChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white">
                     <option value="">Select supplier</option>
                     {suppliers.map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
@@ -332,26 +365,26 @@ export default function Products() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Cost Price (₹)</label>
-                  <input required type="number" step="0.01" name="cost_price" value={editForm.cost_price} onChange={handleEditChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900" />
+                  <input required type="number" step="0.01" name="cost_price" value={editForm.cost_price} onChange={handleEditChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Selling Price (₹)</label>
-                  <input required type="number" step="0.01" name="selling_price" value={editForm.selling_price} onChange={handleEditChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900" />
+                  <input required type="number" step="0.01" name="selling_price" value={editForm.selling_price} onChange={handleEditChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Current Stock</label>
-                  <input required type="number" name="current_stock" value={editForm.current_stock} onChange={handleEditChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900" />
+                  <input required type="number" name="current_stock" value={editForm.current_stock} onChange={handleEditChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Safety Alert At</label>
-                  <input required type="number" name="safety_stock_threshold" value={editForm.safety_stock_threshold} onChange={handleEditChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900" />
+                  <input required type="number" name="safety_stock_threshold" value={editForm.safety_stock_threshold} onChange={handleEditChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white" />
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-gray-900 text-white font-semibold py-3 rounded-lg hover:bg-gray-800 transition-colors mt-6">
+              <button type="submit" className="w-full bg-gray-900 text-white font-semibold py-3 rounded-xl hover:bg-gray-800 transition-colors mt-6 shadow-sm">
                 Update Product
               </button>
             </form>

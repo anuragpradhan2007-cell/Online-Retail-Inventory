@@ -54,30 +54,36 @@ export default function Dashboard() {
   const week = getWeekRange(now);
   const month = getMonthRange(now);
 
-  const totalSales = useMemo(
-    () => orders.reduce((s, o) => s + orderRevenue(o), 0),
+  // Exclude CANCELLED orders from all sales and chart revenue totals
+  const validOrders = useMemo(
+    () => orders.filter(o => o.order_status !== 'CANCELLED'),
     [orders],
+  );
+
+  const totalSales = useMemo(
+    () => validOrders.reduce((s, o) => s + orderRevenue(o), 0),
+    [validOrders],
   );
 
   const weekSales = useMemo(
-    () => orders
+    () => validOrders
       .filter(o => { const d = new Date(o.ordered_at); return d >= week.start && d <= new Date(week.end.getTime() + 86400000 - 1); })
       .reduce((s, o) => s + orderRevenue(o), 0),
-    [orders],
+    [validOrders],
   );
 
   const todaySales = useMemo(
-    () => orders
+    () => validOrders
       .filter(o => startOfDay(new Date(o.ordered_at)).getTime() === todayStart.getTime())
       .reduce((s, o) => s + orderRevenue(o), 0),
-    [orders],
+    [validOrders],
   );
 
   // ── Bar chart data ───────────────────────────────────────────────────────
   const dailyChartData = useMemo(() => {
     // 7 buckets: Mon–Sun of this week
     const buckets = DAY_NAMES.map(name => ({ name, sales: 0 }));
-    orders.forEach(o => {
+    validOrders.forEach(o => {
       const d = new Date(o.ordered_at);
       if (d >= week.start && d <= new Date(week.end.getTime() + 86400000 - 1)) {
         const idx = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
@@ -85,12 +91,12 @@ export default function Dashboard() {
       }
     });
     return buckets;
-  }, [orders]);
+  }, [validOrders]);
 
   const weeklyChartData = useMemo(() => {
     // Buckets per week of this month
     const buckets = {};
-    orders.forEach(o => {
+    validOrders.forEach(o => {
       const d = new Date(o.ordered_at);
       if (d >= month.start && d <= new Date(month.end.getTime() + 86400000 - 1)) {
         // Week number within month (1-indexed)
@@ -111,7 +117,7 @@ export default function Dashboard() {
       const nb = Number(b.name.split(' ')[1]);
       return na - nb;
     });
-  }, [orders]);
+  }, [validOrders]);
 
   // ── Pending / Processing orders (not dispatched) ─────────────────────────
   const pendingOrders = useMemo(

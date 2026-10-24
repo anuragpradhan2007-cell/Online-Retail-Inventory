@@ -44,6 +44,33 @@ router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
   if (error) { res.status(400).json({ error: error.message }); return; }
   res.json(data);
 });
+
+// DELETE a product
+router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params;
+
+  try {
+    // Delete any dependent records in order_items and purchase_orders first to avoid FK constraint errors
+    await supabase.from('order_items').delete().eq('product_id', id);
+    try {
+      await supabase.from('purchase_orders').delete().eq('product_id', id);
+    } catch {
+      // Table may not exist in pure main branch, ignore
+    }
+
+    const { error } = await supabase.from('products').delete().eq('id', id);
+
+    if (error) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+
+    res.status(200).json({ message: 'Product deleted successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/products/:id/restock
 router.post('/:id/restock', async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
@@ -63,4 +90,5 @@ router.post('/:id/restock', async (req: Request, res: Response): Promise<void> =
   if (error) { res.status(500).json({ error: error.message }); return; }
   res.status(200).json({ message: 'Stock updated and logged successfully' });
 });
+
 export default router;
