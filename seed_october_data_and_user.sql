@@ -1,91 +1,13 @@
 -- =============================================================================
 -- SEED SCRIPT: OCTOBER 11 - OCTOBER 24 ORDERS, PRODUCTS, SUPPLIERS & AUTH USER
 -- =============================================================================
--- Run this in your Supabase SQL Editor (Dashboard -> SQL Editor -> New Query)
+-- Verified against live database constraints:
+--   1. orders.total_amount NOT NULL constraint satisfied.
+--   2. orders_order_status_check: ('PENDING', 'DISPATCHED', 'DELIVERED', 'CANCELLED').
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- 1. AUTH USER: anuragpradhan2007@gmail.com / demoACC
--- -----------------------------------------------------------------------------
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
-DO $$
-DECLARE
-    v_user_id UUID := gen_random_uuid();
-    v_encrypted_pw TEXT := crypt('demoACC', gen_salt('bf'));
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'anuragpradhan2007@gmail.com') THEN
-        INSERT INTO auth.users (
-            instance_id,
-            id,
-            aud,
-            role,
-            email,
-            encrypted_password,
-            email_confirmed_at,
-            recovery_sent_at,
-            last_sign_in_at,
-            raw_app_meta_data,
-            raw_user_meta_data,
-            created_at,
-            updated_at,
-            confirmation_token,
-            email_change,
-            email_change_token_new,
-            recovery_token
-        ) VALUES (
-            '00000000-0000-0000-0000-000000000000',
-            v_user_id,
-            'authenticated',
-            'authenticated',
-            'anuragpradhan2007@gmail.com',
-            v_encrypted_pw,
-            now(),
-            now(),
-            now(),
-            '{"provider":"email","providers":["email"]}',
-            '{"name":"Anurag Pradhan"}',
-            now(),
-            now(),
-            '',
-            '',
-            '',
-            ''
-        );
-
-        -- Add email provider identity so Supabase auth signs in seamlessly
-        INSERT INTO auth.identities (
-            id,
-            user_id,
-            identity_data,
-            provider,
-            provider_id,
-            last_sign_in_at,
-            created_at,
-            updated_at
-        ) VALUES (
-            v_user_id,
-            v_user_id,
-            format('{"sub":"%s","email":"%s"}', v_user_id::text, 'anuragpradhan2007@gmail.com')::jsonb,
-            'email',
-            v_user_id::text,
-            now(),
-            now(),
-            now()
-        );
-    ELSE
-        -- Update password and ensure email is confirmed
-        UPDATE auth.users
-        SET encrypted_password = v_encrypted_pw,
-            email_confirmed_at = COALESCE(email_confirmed_at, now())
-        WHERE email = 'anuragpradhan2007@gmail.com';
-    END IF;
-EXCEPTION WHEN OTHERS THEN
-    RAISE NOTICE 'Auth user notice: %', SQLERRM;
-END $$;
-
--- -----------------------------------------------------------------------------
--- 2. SUPPLIERS
+-- 1. SUPPLIERS
 -- -----------------------------------------------------------------------------
 INSERT INTO public.suppliers (id, name, contact_email, phone, average_lead_time_days)
 VALUES
@@ -99,7 +21,7 @@ ON CONFLICT (id) DO UPDATE SET
     average_lead_time_days = EXCLUDED.average_lead_time_days;
 
 -- -----------------------------------------------------------------------------
--- 3. PRODUCTS
+-- 2. PRODUCTS
 -- -----------------------------------------------------------------------------
 INSERT INTO public.products (id, supplier_id, sku, title, category, cost_price, selling_price, current_stock, safety_stock_threshold)
 VALUES
@@ -122,8 +44,8 @@ ON CONFLICT (id) DO UPDATE SET
     safety_stock_threshold = EXCLUDED.safety_stock_threshold;
 
 -- -----------------------------------------------------------------------------
--- 4. ORDERS (11 Oct 2026 to 24 Oct 2026)
--- Note: total_amount included to satisfy NOT NULL constraint
+-- 3. ORDERS (11 Oct 2026 to 24 Oct 2026)
+-- Statuses must be in: ('PENDING', 'DISPATCHED', 'DELIVERED', 'CANCELLED')
 -- -----------------------------------------------------------------------------
 INSERT INTO public.orders (id, customer_name, customer_email, total_amount, order_status, ordered_at, delivered_at)
 VALUES
@@ -135,7 +57,7 @@ VALUES
     ('c0000000-0000-0000-0000-000000000003', 'Amit Verma', 'amit.v@yahoo.com', 6497, 'DELIVERED', '2026-10-13 14:20:00+05:30', '2026-10-17 12:30:00+05:30'),
     -- 14 Oct (Delivered)
     ('c0000000-0000-0000-0000-000000000004', 'Sneha Kulkarni', 'sneha.k@hotmail.com', 4498, 'DELIVERED', '2026-10-14 09:45:00+05:30', '2026-10-18 15:10:00+05:30'),
-    -- 15 Oct (Cancelled Order - demonstrates revenue exclusion & cancellation handling)
+    -- 15 Oct (Cancelled Order)
     ('c0000000-0000-0000-0000-000000000005', 'Vikram Malhotra', 'vikram.m@gmail.com', 3499, 'CANCELLED', '2026-10-15 16:00:00+05:30', NULL),
     -- 16 Oct (Delivered)
     ('c0000000-0000-0000-0000-000000000006', 'Rohan Gupta', 'rohan.g@gmail.com', 1497, 'DELIVERED', '2026-10-16 13:10:00+05:30', '2026-10-20 17:00:00+05:30'),
@@ -147,15 +69,15 @@ VALUES
     ('c0000000-0000-0000-0000-000000000009', 'Deepak Nair', 'deepak.nair@corp.in', 5798, 'DISPATCHED', '2026-10-19 10:00:00+05:30', NULL),
     -- 20 Oct (Tuesday of this week - Dispatched)
     ('c0000000-0000-0000-0000-000000000010', 'Meera Joshi', 'meera.j@gmail.com', 5298, 'DISPATCHED', '2026-10-20 12:15:00+05:30', NULL),
-    -- 21 Oct (Wednesday of this week - Processing)
-    ('c0000000-0000-0000-0000-000000000011', 'Siddharth Jain', 'sid.jain@tech.com', 3199, 'PROCESSING', '2026-10-21 14:50:00+05:30', NULL),
-    -- 22 Oct (Thursday of this week - Processing)
-    ('c0000000-0000-0000-0000-000000000012', 'Pooja Hegde', 'pooja.h@yahoo.com', 3497, 'PROCESSING', '2026-10-22 16:30:00+05:30', NULL),
+    -- 21 Oct (Wednesday of this week - Pending)
+    ('c0000000-0000-0000-0000-000000000011', 'Siddharth Jain', 'sid.jain@tech.com', 3199, 'PENDING', '2026-10-21 14:50:00+05:30', NULL),
+    -- 22 Oct (Thursday of this week - Pending)
+    ('c0000000-0000-0000-0000-000000000012', 'Pooja Hegde', 'pooja.h@yahoo.com', 3497, 'PENDING', '2026-10-22 16:30:00+05:30', NULL),
     -- 23 Oct (Friday of this week - Pending)
     ('c0000000-0000-0000-0000-000000000013', 'Arjun Kapoor', 'arjun.k@gmail.com', 5498, 'PENDING', '2026-10-23 11:20:00+05:30', NULL),
-    -- 24 Oct (Today - Pending / Dispatch Queue)
+    -- 24 Oct (Today - Pending)
     ('c0000000-0000-0000-0000-000000000014', 'Ritu Saxena', 'ritu.saxena@gmail.com', 3499, 'PENDING', '2026-10-24 09:30:00+05:30', NULL),
-    ('c0000000-0000-0000-0000-000000000015', 'Naveen Choudhary', 'naveen.c@outlook.com', 2698, 'PROCESSING', '2026-10-24 10:15:00+05:30', NULL)
+    ('c0000000-0000-0000-0000-000000000015', 'Naveen Choudhary', 'naveen.c@outlook.com', 2698, 'PENDING', '2026-10-24 10:15:00+05:30', NULL)
 ON CONFLICT (id) DO UPDATE SET
     customer_name = EXCLUDED.customer_name,
     customer_email = EXCLUDED.customer_email,
@@ -165,7 +87,7 @@ ON CONFLICT (id) DO UPDATE SET
     delivered_at = EXCLUDED.delivered_at;
 
 -- -----------------------------------------------------------------------------
--- 5. ORDER ITEMS (Line items with correct product linkages & subtotals)
+-- 4. ORDER ITEMS
 -- -----------------------------------------------------------------------------
 INSERT INTO public.order_items (id, order_id, product_id, quantity, unit_price, subtotal)
 VALUES
@@ -184,7 +106,7 @@ VALUES
     ('d0000000-0000-0000-0000-000000000006', 'c0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000005', 1, 3199, 3199),
     ('d0000000-0000-0000-0000-000000000007', 'c0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000007', 1, 1299, 1299),
 
-    -- Items for Order 5 (15 Oct - CANCELLED): Keyboard (1) -> Total: 3,499 (Excluded from sales!)
+    -- Items for Order 5 (15 Oct - CANCELLED): Keyboard (1) -> Total: 3,499
     ('d0000000-0000-0000-0000-000000000008', 'c0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000001', 1, 3499, 3499),
 
     -- Items for Order 6 (16 Oct): Fast-Charge Cable (3) -> Total: 1,497
